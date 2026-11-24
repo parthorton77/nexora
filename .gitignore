@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Local files
+*.local
+.DS_Store
+
+# QA screenshots
+qa/shots/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Editor settings
+.vscode/

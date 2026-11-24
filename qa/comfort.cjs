@@ -1,0 +1,42 @@
+const { chromium } = require('playwright');
+const check = (n, ok, x = '') => console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}${x ? '  — ' + x : ''}`);
+(async () => {
+  const browser = await chromium.launch({ headless: true, args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 760 }, reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text().slice(0, 200)));
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('http://localhost:5180/');
+  await page.waitForFunction(() => window.__xp && window.__xp.getState().progress >= 1, null, { timeout: 40000 });
+  check('Reduced motion detected', await page.evaluate(() => window.__xp.getState().reducedMotion));
+  check('Sound is off by default', !(await page.evaluate(() => window.__xp.getState().soundOn)));
+  await page.getByRole('button', { name: 'Enter NEXORA' }).click();
+  await page.waitForTimeout(1200);
+  const t0 = Date.now();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__xp.getState().scene === 'fashion' && !window.__xp.getState().transition, null, { timeout: 20000 });
+  check('Portal entry is quick with reduced motion', Date.now() - t0 < 6000, `${Date.now() - t0} ms`);
+  await page.waitForFunction(() => window.__xp.getState().mode === 'browse', null, { timeout: 8000 });
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(400);
+  check('Extraction still works (as a cut)', (await page.evaluate(() => window.__xp.getState().mode)) === 'inspect');
+  await page.getByRole('button', { name: 'Turn sound on' }).click();
+  await page.waitForTimeout(500);
+  check('Sound toggle turns ambient sound on', await page.evaluate(() => window.__xp.getState().soundOn));
+  await page.getByRole('button', { name: 'Turn sound off' }).click();
+  check('Sound toggle turns it off again', !(await page.evaluate(() => window.__xp.getState().soundOn)));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  check('Esc puts the product back', (await page.evaluate(() => window.__xp.getState().mode)) === 'browse');
+  // persistence across reload
+  await page.evaluate(() => {
+    window.__shop.getState().setSize('tee-core', 'M');
+    window.__shop.getState().addToBag('tee-core');
+  });
+  await page.reload();
+  await page.waitForFunction(() => window.__shop, null, { timeout: 20000 });
+  check('Bag persists across reload', (await page.evaluate(() => window.__shop.getState().bag.length)) >= 1);
+  console.log('errors:', errors.length, errors.slice(0, 3).join(' | '));
+  await browser.close();
+})();

@@ -1,0 +1,4 @@
+{
+  "$comment": "Map a product id to a production GLB. Example: \"jacket-pulse\": { \"url\": \"/models/jacket-pulse.glb\", \"scale\": 1, \"offset\": [0, 0, 0], \"rotation\": [0, 0, 0] }. Units are metres, Y-up, facing +Z. Hanging garments: origin at the hanger hook. Shoes, accessories and devices: origin at the base centre. Materials whose name contains 'fabric' or 'body' follow the colour picker.",
+  "products": {}
+}
